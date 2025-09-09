@@ -1,0 +1,29 @@
+steps:
+  # Build Docker image
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'asia-northeast1-docker.pkg.dev/quiet-subset-471508-t7/demo-batch-img/batch-job:$SHORT_SHA', '.']
+
+  # Push image
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'asia-northeast1-docker.pkg.dev/quiet-subset-471508-t7/demo-batch-img/batch-job:$SHORT_SHA']
+
+  # Deploy Cloud Run Job
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        gcloud run jobs deploy demo-batch-job \
+          --image asia-northeast1-docker.pkg.dev/quiet-subset-471508-t7/demo-batch-img/batch-job:$SHORT_SHA \
+          --region asia-northeast1 \
+          --service-account=batch-job-sa@quiet-subset-471508-t7.iam.gserviceaccount.com \
+          --set-env-vars GCS_BUCKET=demo-batch-bucket1,PROD_DB_USER=root,PROD_DB_PASSWORD=Demo@123,PROD_DB_NAME=db-name1,PROD_DB_SOCKET=/cloudsql/quiet-subset-471508-t7:asia-northeast1:demo-db
+
+  # Execute Job ngay sau deploy
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        gcloud run jobs execute demo-batch-job --region asia-northeast1
+
